@@ -35,7 +35,7 @@ class AgentLoop:
                 StepStartedEvent(run_id=context.run_id, step=context.step, ts=_now())
             )
 
-            # [plan] call LLM — API errors terminate the run
+            # [plan] 调用大模型
             try:
                 response = await self._provider.chat(
                     messages=context.messages,
@@ -50,7 +50,7 @@ class AgentLoop:
                 context.mark_failed("llm_error")
                 break
 
-            # [observe] append assistant content blocks to context
+            # [observe] 将[plan]中大模型的回复加入到上下文中
             blocks: list[dict[str, object]] = []
             if response.text:
                 blocks.append({"type": "text", "text": response.text})
@@ -60,7 +60,7 @@ class AgentLoop:
                 )
             context.add_assistant_message(blocks)
 
-            # [act] execute each requested tool; errors become tool results so loop continues
+            # [act] 执行各个被调用的tools; tool调用错误也会作为执行结果，不终止Agent循环
             if response.stop_reason == "tool_use":
                 for tc in response.tool_calls:
                     result = await invoke_tool(
